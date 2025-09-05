@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import re
 
+
 def convert_image(img, encoding, width, height):
     """
     Convert a raw image buffer to a numpy array based on the specified encoding.
@@ -21,17 +22,17 @@ def convert_image(img, encoding, width, height):
     """
 
     converters = {
-        "bgr8":        lambda: img.reshape(height, width, 3),
-        "rgb8":        lambda: cv2.cvtColor(img.reshape(height, width, 3), cv2.COLOR_RGB2BGR),
-        "bgra8":       lambda: cv2.cvtColor(img.reshape(height, width, 4), cv2.COLOR_BGRA2BGR),
-        "rgba8":       lambda: cv2.cvtColor(img.reshape(height, width, 4), cv2.COLOR_RGBA2BGR),
-        "mono8":       lambda: img.reshape(height, width),
-        "mono16":      lambda: img.view(np.uint16).reshape(height, width),
-        "bgr16":       lambda: img.view(np.uint16).reshape(height, width, 3),
-        "rgb16":       lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 3), cv2.COLOR_RGB2BGR),
-        "bgra16":      lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 4), cv2.COLOR_BGRA2BGR),
-        "rgba16":      lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 4), cv2.COLOR_RGBA2BGR),
-        "yuv422":      lambda: cv2.cvtColor(img.reshape(height, width, 2), cv2.COLOR_YUV2BGR_YUY2),
+        "bgr8": lambda: img.reshape(height, width, 3),
+        "rgb8": lambda: cv2.cvtColor(img.reshape(height, width, 3), cv2.COLOR_RGB2BGR),
+        "bgra8": lambda: cv2.cvtColor(img.reshape(height, width, 4), cv2.COLOR_BGRA2BGR),
+        "rgba8": lambda: cv2.cvtColor(img.reshape(height, width, 4), cv2.COLOR_RGBA2BGR),
+        "mono8": lambda: img.reshape(height, width),
+        "mono16": lambda: img.view(np.uint16).reshape(height, width),
+        "bgr16": lambda: img.view(np.uint16).reshape(height, width, 3),
+        "rgb16": lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 3), cv2.COLOR_RGB2BGR),
+        "bgra16": lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 4), cv2.COLOR_BGRA2BGR),
+        "rgba16": lambda: cv2.cvtColor(img.view(np.uint16).reshape(height, width, 4), cv2.COLOR_RGBA2BGR),
+        "yuv422": lambda: cv2.cvtColor(img.reshape(height, width, 2), cv2.COLOR_YUV2BGR_YUY2),
         "bayer_rggb8": lambda: cv2.cvtColor(img.reshape(height, width), cv2.COLOR_BAYER_RG2BGR),
         "bayer_bggr8": lambda: cv2.cvtColor(img.reshape(height, width), cv2.COLOR_BAYER_BG2BGR),
         "bayer_gbrg8": lambda: cv2.cvtColor(img.reshape(height, width), cv2.COLOR_BAYER_GB2BGR),

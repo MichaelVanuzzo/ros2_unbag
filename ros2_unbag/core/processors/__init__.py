@@ -41,5 +41,5 @@ def load_all_processors():
         importlib.import_module(f"{package}.{module_name}")
 
 
-# Load all modules when the package is imported 
+# Load all modules when the package is imported
 load_all_processors()

@@ -51,47 +51,24 @@ class ExportCommand(CommandExtension):
             None
         """
         parser.add_argument("bag", nargs="?", help="Path to ROS2 bag file")
-        parser.add_argument(
-            "--export", "-e", action="append",
-            help="Export spec: /topic:format[:subdir]. Can be repeated.")
+        parser.add_argument("--export", "-e", action="append", help="Export spec: /topic:format[:subdir]. Can be repeated.")
         parser.add_argument("--output-dir", "-o", help="Base output directory")
         parser.add_argument(
-            "--naming", default="%name_%index",
-            help="Naming pattern. Supports %%name, %%index, and strftime (e.g. `%%Y-%%m-%%d_%%H-%%M-%%S`) which uses ROS timestamp.")
-        parser.add_argument(
-            "--resample",
-            help="Optional resampling: /master_topic:association[,discard_eps]")
-        parser.add_argument(
-            "--processing", "-p", action="append", default=None,
-            help="Processing spec: /topic:processor:[args]. Can be repeated.")
-        parser.add_argument(
-            "--cpu-percentage", type=float, default=80.0,
-            help="CPU usage for parallel processing")
-        parser.add_argument(
-            "--config", type=str,
-            help="Path to config JSON (overrides other args)")
-        parser.add_argument(
-            "--gui", action="store_true",
-            help="Launch GUI instead of CLI")
-        parser.add_argument(
-            "--install-routine", type=str, default=None,
-            help="Imports a custom routine from a file. See documentation for details.")
-        parser.add_argument(
-            "--install-processor", type=str, default=None,
-            help="Imports a custom processor from a file. See documentation for details.")
-        parser.add_argument(
-            "--uninstall-routine", action="store_true",
-            help="Removes a routine interactively.")
-        parser.add_argument(
-            "--uninstall-processor", action="store_true",
-            help="Removes a processor interactively.")
-        parser.add_argument(
-            "--use-routine", type=str, default=None,
-            help="Use a routine without installing it. See documentation for details.")
-        parser.add_argument(
-            "--use-processor", type=str, default=None,
-            help="Use a processor without installing it. See documentation for details.")
-
+            "--naming",
+            default="%name_%index",
+            help="Naming pattern. Supports %%name, %%index, and strftime (e.g. `%%Y-%%m-%%d_%%H-%%M-%%S`) which uses ROS timestamp.",
+        )
+        parser.add_argument("--resample", help="Optional resampling: /master_topic:association[,discard_eps]")
+        parser.add_argument("--processing", "-p", action="append", default=None, help="Processing spec: /topic:processor:[args]. Can be repeated.")
+        parser.add_argument("--cpu-percentage", type=float, default=80.0, help="CPU usage for parallel processing")
+        parser.add_argument("--config", type=str, help="Path to config JSON (overrides other args)")
+        parser.add_argument("--gui", action="store_true", help="Launch GUI instead of CLI")
+        parser.add_argument("--install-routine", type=str, default=None, help="Imports a custom routine from a file. See documentation for details.")
+        parser.add_argument("--install-processor", type=str, default=None, help="Imports a custom processor from a file. See documentation for details.")
+        parser.add_argument("--uninstall-routine", action="store_true", help="Removes a routine interactively.")
+        parser.add_argument("--uninstall-processor", action="store_true", help="Removes a processor interactively.")
+        parser.add_argument("--use-routine", type=str, default=None, help="Use a routine without installing it. See documentation for details.")
+        parser.add_argument("--use-processor", type=str, default=None, help="Use a processor without installing it. See documentation for details.")
 
     def main(self, parser, args):
         """
@@ -117,7 +94,7 @@ class ExportCommand(CommandExtension):
             return
         if args.uninstall_processor:
             self.uninstall_interactive(routine=False)
-        
+
         # Handle routine or processor usage
         if args.use_routine is not None:
             self.use_routine_or_processor(args.use_routine)
@@ -130,7 +107,6 @@ class ExportCommand(CommandExtension):
         else:
             return self._run_cli(args)
 
-
     def _run_gui(self):
         """
         Launch the GUI application for exporting ROS2 bag data.
@@ -141,9 +117,9 @@ class ExportCommand(CommandExtension):
         Returns:
             int: Exit code from the Qt application.
         """
+
         def qt_exception_hook(exctype, value, traceback):
-            QMessageBox.critical(None, "Unhandled Exception",
-                                 f"{exctype.__name__}: {value}")
+            QMessageBox.critical(None, "Unhandled Exception", f"{exctype.__name__}: {value}")
             sys.__excepthook__(exctype, value, traceback)
 
         sys.excepthook = qt_exception_hook
@@ -151,7 +127,6 @@ class ExportCommand(CommandExtension):
         window = UnbagApp()
         window.show()
         return app.exec()
-
 
     def _run_cli(self, args):
         """
@@ -165,7 +140,7 @@ class ExportCommand(CommandExtension):
         """
         if not args.bag:
             sys.exit("Error: No bag file provided. Use 'ros2 unbag <bag_path>' or --gui for GUI mode.")
-    
+
         if not os.path.exists(args.bag):
             sys.exit(f"Error: Bag file '{args.bag}' not found.")
 
@@ -180,7 +155,6 @@ class ExportCommand(CommandExtension):
         Exporter(bag_reader, config, global_config, progress_callback=self.progress).run()
         print("Export complete.")
         return 0
-
 
     def progress(self, current, total):
         """
@@ -201,7 +175,6 @@ class ExportCommand(CommandExtension):
         if current >= total:
             self._pbar.close()
             del self._pbar
-
 
     def _validate_and_build_config(self, args, bag_reader):
         """
@@ -224,12 +197,7 @@ class ExportCommand(CommandExtension):
             subdir = parts[2] if len(parts) > 2 else ""
             if topic not in bag_reader.topic_types:
                 sys.exit(f"Topic {topic} not found in bag.")
-            config[topic] = {
-                "format": fmt,
-                "path": args.output_dir or ".",
-                "subfolder": subdir.strip("/"),
-                "naming": args.naming.strip()
-            }
+            config[topic] = {"format": fmt, "path": args.output_dir or ".", "subfolder": subdir.strip("/"), "naming": args.naming.strip()}
 
         if args.resample:
             try:
@@ -245,11 +213,7 @@ class ExportCommand(CommandExtension):
                 if topic_spec not in config:
                     sys.exit(f"Resample topic {topic_spec} not in --export")
 
-                config["__global__"]["resample_config"] = {
-                    "master_topic": topic_spec,
-                    "association": association,
-                    "discard_eps": discard_eps
-                }
+                config["__global__"]["resample_config"] = {"master_topic": topic_spec, "association": association, "discard_eps": discard_eps}
             except Exception:
                 sys.exit(f"Invalid --resample: {args.resample}")
 
@@ -261,7 +225,7 @@ class ExportCommand(CommandExtension):
                 topic, processor = parts[0], parts[1]
                 if topic not in config:
                     sys.exit(f"Processing topic {topic} not in --export")
-                config[topic]['processor'] = processor
+                config[topic]["processor"] = processor
                 if len(parts) == 3:
                     arg_list = parts[2].split(",")
                     processor_args = {}
@@ -270,10 +234,9 @@ class ExportCommand(CommandExtension):
                             sys.exit(f"Invalid processor arg: {arg}")
                         k, v = arg.split("=", 1)
                         processor_args[k.strip()] = v.strip()
-                    config[topic]['processor_args'] = processor_args
+                    config[topic]["processor_args"] = processor_args
 
         return config
-    
 
     def install_routine(self, path):
         """
@@ -294,7 +257,6 @@ class ExportCommand(CommandExtension):
         else:
             print(f"Imported routine from {path}")
 
-
     def install_processor(self, path):
         """
         Install a custom processor from the specified Python file.
@@ -313,7 +275,6 @@ class ExportCommand(CommandExtension):
             sys.exit(f"Error importing processor from {path}")
         else:
             print(f"Imported processor from {path}")
-
 
     def import_file(self, path, dest_dir):
         """
@@ -339,9 +300,8 @@ class ExportCommand(CommandExtension):
 
         with open(path, "r") as src_file, open(dest, "w") as dest_file:
             dest_file.write(src_file.read())
-        
+
         return True
-    
 
     def uninstall_interactive(self, routine=True):
         """
@@ -353,9 +313,7 @@ class ExportCommand(CommandExtension):
         Returns:
             None
         """
-        base_dir = os.path.dirname(
-            ros2_unbag.core.routines.__file__ if routine else ros2_unbag.core.processors.__file__
-        )
+        base_dir = os.path.dirname(ros2_unbag.core.routines.__file__ if routine else ros2_unbag.core.processors.__file__)
         files = [f for f in os.listdir(base_dir) if f.endswith(".py") and f != "__init__.py" and f != "base.py" and f != "default.py"]
 
         label = "routines" if routine else "processors"
@@ -381,7 +339,6 @@ class ExportCommand(CommandExtension):
             print(f"Uninstalled {label[:-1]} '{selected_file}'")
         except (IndexError, ValueError):
             print("Invalid selection.")
-    
 
     def use_routine_or_processor(self, path):
         """

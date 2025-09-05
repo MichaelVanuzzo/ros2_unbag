@@ -58,19 +58,12 @@ class BagWriter:
         Returns:
             None
         """
-        storage_options = StorageOptions(uri=self.output_bag_path,
-                                         storage_id='mcap')
-        converter_options = ConverterOptions(input_serialization_format='cdr',
-                                             output_serialization_format='cdr')
+        storage_options = StorageOptions(uri=self.output_bag_path, storage_id="mcap")
+        converter_options = ConverterOptions(input_serialization_format="cdr", output_serialization_format="cdr")
         self.writer.open(storage_options, converter_options)
         for topic, msg_type_str in topic_types.items():
             metadata = TopicMetadata(
-                0,  # id
-                topic,  # name
-                msg_type_str,  # type
-                'cdr',  # serialization_format
-                [],  # offered_qos_profiles
-                ''  # type_description_hash
+                0, topic, msg_type_str, "cdr", [], ""  # id  # name  # type  # serialization_format  # offered_qos_profiles  # type_description_hash
             )
             self.writer.create_topic(metadata)
 
@@ -113,8 +106,7 @@ class BagWriter:
             None
         """
         # Sort reference topic messages
-        ref_msgs = sorted(messages_by_topic[reference_topic],
-                          key=lambda x: x[0])
+        ref_msgs = sorted(messages_by_topic[reference_topic], key=lambda x: x[0])
         ref_timestamps = [ts for ts, _ in ref_msgs]
 
         # Sort messages for each topic
@@ -156,8 +148,7 @@ class BagWriter:
             messages_by_topic[topic].append((t, msg))
 
         # Open bag for writing with selected topics
-        self.open(
-            {topic: reader.topic_types[topic] for topic in selected_topics})
+        self.open({topic: reader.topic_types[topic] for topic in selected_topics})
 
         # Write all messages (optionally synchronized)
         if reference_topic is None:

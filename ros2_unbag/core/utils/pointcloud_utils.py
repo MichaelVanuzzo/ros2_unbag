@@ -1,7 +1,7 @@
-
 import numpy as np
 from pypcd4 import PointCloud
 from pypcd4.pointcloud2 import build_dtype_from_msg
+
 
 def convert_pointcloud2_to_pypcd(msg):
     """Convert a PointCloud2 message to a Pypcd PointCloud object.

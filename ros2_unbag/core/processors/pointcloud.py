@@ -151,7 +151,7 @@ def pointcloud_remove_fields(msg, fields_to_remove: str):
             src_base = src_row_base + c * msg.point_step
             dst_base = dst_row_base + c * new_point_step
             for s_off, size, d_off in segments:
-                new_data[dst_base + d_off: dst_base + d_off + size] = src[src_base + s_off: src_base + s_off + size]
+                new_data[dst_base + d_off : dst_base + d_off + size] = src[src_base + s_off : src_base + s_off + size]
 
     # Assemble new PointCloud2 message
     out = PointCloud2()
@@ -185,12 +185,10 @@ def pointcloud_apply_transform_from_yaml(msg, custom_frame_path: str):
     """
     # Check if the provided path is valid
     if not os.path.isfile(custom_frame_path):
-        raise ValueError(
-            f"The provided custom_frame_path '{custom_frame_path}' is not a valid file path"
-        )
+        raise ValueError(f"The provided custom_frame_path '{custom_frame_path}' is not a valid file path")
 
     # Load transformation from YAML
-    with open(custom_frame_path, 'r') as file:
+    with open(custom_frame_path, "r") as file:
         custom_frame = yaml.safe_load(file)
 
     t = custom_frame["translation"]
@@ -205,33 +203,33 @@ def pointcloud_apply_transform_from_yaml(msg, custom_frame_path: str):
     # Find offsets of x, y, z fields
     offsets = {}
     for field in msg.fields:
-        if field.name in ('x', 'y', 'z'):
+        if field.name in ("x", "y", "z"):
             offsets[field.name] = field.offset
 
-    if not all(k in offsets for k in ('x', 'y', 'z')):
+    if not all(k in offsets for k in ("x", "y", "z")):
         raise ValueError("PointCloud2 message does not contain x, y, z fields")
 
-    x_off = offsets['x']
-    y_off = offsets['y']
-    z_off = offsets['z']
+    x_off = offsets["x"]
+    y_off = offsets["y"]
+    z_off = offsets["z"]
 
     # Transform the point data
     data = bytearray(msg.data)  # mutable copy
 
     for i in range(0, len(data), msg.point_step):
         # Unpack x, y, z from their respective offsets
-        x = struct.unpack_from('f', data, i + x_off)[0]
-        y = struct.unpack_from('f', data, i + y_off)[0]
-        z = struct.unpack_from('f', data, i + z_off)[0]
+        x = struct.unpack_from("f", data, i + x_off)[0]
+        y = struct.unpack_from("f", data, i + y_off)[0]
+        z = struct.unpack_from("f", data, i + z_off)[0]
 
         # Transform the point
         point = np.array([x, y, z, 1.0])
         transformed = transform_matrix @ point
 
         # Write back transformed coordinates
-        struct.pack_into('f', data, i + x_off, transformed[0])
-        struct.pack_into('f', data, i + y_off, transformed[1])
-        struct.pack_into('f', data, i + z_off, transformed[2])
+        struct.pack_into("f", data, i + x_off, transformed[0])
+        struct.pack_into("f", data, i + y_off, transformed[1])
+        struct.pack_into("f", data, i + z_off, transformed[2])
 
     # Construct the new PointCloud2 message
     transformed_msg = PointCloud2()
@@ -247,6 +245,7 @@ def pointcloud_apply_transform_from_yaml(msg, custom_frame_path: str):
 
     return transformed_msg
 
+
 def quaternion_matrix(quaternion):
     """
     Compute a 4×4 transformation matrix from a quaternion [x, y, z, w].
@@ -258,22 +257,22 @@ def quaternion_matrix(quaternion):
         numpy.ndarray: 4x4 transformation matrix.
     """
     x, y, z, w = quaternion
-    N = x*x + y*y + z*z + w*w
+    N = x * x + y * y + z * z + w * w
     if N < np.finfo(float).eps:
         return np.eye(4)
     s = 2.0 / N
-    xx, yy, zz = x*x*s, y*y*s, z*z*s
-    xy, xz, yz = x*y*s, x*z*s, y*z*s
-    wx, wy, wz = w*x*s, w*y*s, w*z*s
+    xx, yy, zz = x * x * s, y * y * s, z * z * s
+    xy, xz, yz = x * y * s, x * z * s, y * z * s
+    wx, wy, wz = w * x * s, w * y * s, w * z * s
 
     M = np.eye(4)
-    M[0,0] = 1 - (yy + zz)
-    M[0,1] =     xy - wz
-    M[0,2] =     xz + wy
-    M[1,0] =     xy + wz
-    M[1,1] = 1 - (xx + zz)
-    M[1,2] =     yz - wx
-    M[2,0] =     xz - wy
-    M[2,1] =     yz + wx
-    M[2,2] = 1 - (xx + yy)
+    M[0, 0] = 1 - (yy + zz)
+    M[0, 1] = xy - wz
+    M[0, 2] = xz + wy
+    M[1, 0] = xy + wz
+    M[1, 1] = 1 - (xx + zz)
+    M[1, 2] = yz - wx
+    M[2, 0] = xz - wy
+    M[2, 1] = yz + wx
+    M[2, 2] = 1 - (xx + yy)
     return M

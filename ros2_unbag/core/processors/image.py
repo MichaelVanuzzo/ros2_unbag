@@ -50,8 +50,7 @@ def apply_color_map(msg, color_map: int = 1):
     try:
         color_map = int(color_map)
     except ValueError:
-        raise ValueError(
-            f"Invalid color map value: {color_map}. Must be an integer.")
+        raise ValueError(f"Invalid color map value: {color_map}. Must be an integer.")
 
     # Decode incoming message into a cv2 image
     if isinstance(msg, CompressedImage):
@@ -75,7 +74,7 @@ def apply_color_map(msg, color_map: int = 1):
 
     # Reencode the recolored image back to the original format
     if isinstance(msg, CompressedImage):
-        ext = '.jpg' if 'jpeg' in msg.format.lower() else '.png'
+        ext = ".jpg" if "jpeg" in msg.format.lower() else ".png"
         success, encoded = cv2.imencode(ext, recolored)
         if not success:
             raise RuntimeError("Failed to encode recolored image")

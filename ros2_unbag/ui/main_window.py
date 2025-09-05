@@ -100,8 +100,7 @@ class ExportProgressDialog(QtWidgets.QDialog):
         # Initialize progress bar
         self.progress_bar = QtWidgets.QProgressBar(self)
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                        QtWidgets.QSizePolicy.Policy.Fixed)
+        self.progress_bar.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         layout.addWidget(self.progress_bar)
 
     @QtCore.Slot(int)
@@ -116,7 +115,7 @@ class ExportProgressDialog(QtWidgets.QDialog):
             None
         """
         self.progress_bar.setValue(value)
-    
+
     def closeEvent(self, event):
         """
         Emit finished event and close.
@@ -177,11 +176,10 @@ class UnbagApp(QtWidgets.QWidget):
             None
         """
         # Open file dialog and load bag in background
-        bag_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open Bag File", "", "Bag Files (*.db3 *.mcap)")
+        bag_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open Bag File", "", "Bag Files (*.db3 *.mcap)")
         if not bag_path:
             return
-        
+
         # Reset any previously loaded bag options
         self.bag_reader = None
         self.topic_selector = None
@@ -191,8 +189,7 @@ class UnbagApp(QtWidgets.QWidget):
         self.bag_parent_folder = Path(bag_path).parent
 
         self.setEnabled(False)
-        self.wait_dialog = QtWidgets.QProgressDialog(
-            "Loading bag file, please wait...", None, 0, 0, self)
+        self.wait_dialog = QtWidgets.QProgressDialog("Loading bag file, please wait...", None, 0, 0, self)
         self.wait_dialog.setWindowTitle("Loading")
         self.wait_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         self.wait_dialog.setCancelButton(None)
@@ -235,8 +232,7 @@ class UnbagApp(QtWidgets.QWidget):
         self.setEnabled(True)
 
         if isinstance(result, Exception):
-            QtWidgets.QMessageBox.critical(self, "Error",
-                                           f"Failed to load bag: {result}")
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to load bag: {result}")
             return
 
         self.bag_reader = result
@@ -259,10 +255,10 @@ class UnbagApp(QtWidgets.QWidget):
         # Check if output directories are set for each topic
         errors = []
         for topic, cfg in config.items():
-            path = cfg.get('path', '').strip()
+            path = cfg.get("path", "").strip()
             if not path:
                 errors.append(f"Empty output directory for topic '{topic}'")
-        
+
         if errors:
             print("\033[91mConfiguration errors found:")
             for error in errors:
@@ -323,7 +319,7 @@ class UnbagApp(QtWidgets.QWidget):
 
         # Fixed button layout at bottom
         button_layout = QtWidgets.QHBoxLayout()
-        
+
         back_button = QtWidgets.QPushButton("Back")
         back_button.clicked.connect(self.show_init_screen)
         button_layout.addWidget(back_button)
@@ -365,11 +361,7 @@ class UnbagApp(QtWidgets.QWidget):
         scroll_content = QtWidgets.QWidget(self)
         scroll_layout = QtWidgets.QVBoxLayout(scroll_content)
 
-        self.export_options = ExportOptions(
-            selected_topics,
-            self.bag_reader.get_topics(),
-            self.bag_parent_folder
-        )
+        self.export_options = ExportOptions(selected_topics, self.bag_reader.get_topics(), self.bag_parent_folder)
         scroll_layout.addWidget(self.export_options)
         scroll_area.setWidget(scroll_content)
 
@@ -399,7 +391,6 @@ class UnbagApp(QtWidgets.QWidget):
 
         if config is not None and isinstance(config, dict):
             self.export_options.set_export_config(config, global_config)
-
 
     def export_data(self):
         """
@@ -433,7 +424,7 @@ class UnbagApp(QtWidgets.QWidget):
             self.setEnabled(True)
             self.show_export_settings_page()  # show the config UI again
             return
-        
+
         self.last_used_config = config
         self.last_used_global_config = global_config
 
@@ -441,7 +432,6 @@ class UnbagApp(QtWidgets.QWidget):
         self.worker.finished.connect(self.on_export_finished)
         self.worker.error.connect(self.handle_export_error)
         self.worker.start()
-
 
     def run_export(self, bag_reader, config, global_config):
         """
@@ -455,21 +445,18 @@ class UnbagApp(QtWidgets.QWidget):
         Returns:
             None
         """
+
         # Run export using Exporter with progress updates
         def progress(current, total):
             value = int((current / total) * 100)
-            QtCore.QMetaObject.invokeMethod(
-                self.wait_dialog, "setValue",
-                QtCore.Qt.ConnectionType.QueuedConnection,
-                Q_ARG(int, value)
-            )
-        
+            QtCore.QMetaObject.invokeMethod(self.wait_dialog, "setValue", QtCore.Qt.ConnectionType.QueuedConnection, Q_ARG(int, value))
+
         # If this fails, it will raise an exception that is caught in the worker thread
         self._validate_config(config)
-        
+
         self.current_exporter = Exporter(bag_reader, config, global_config, progress_callback=progress)
         self.current_exporter.run()
-        
+
         return None
 
     def on_export_finished(self, _):
@@ -517,7 +504,7 @@ class UnbagApp(QtWidgets.QWidget):
         self.setEnabled(True)
 
         QtWidgets.QMessageBox.critical(self, "Export Error", str(e))
-        
+
         # Return to export settings page with previous config
         self.worker.terminate()
         self.show_export_settings_page(config=self.last_used_config, global_config=self.last_used_global_config)
@@ -558,11 +545,10 @@ class UnbagApp(QtWidgets.QWidget):
             None
         """
         # Open file dialog to get save path
-        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save Config File", str(Path.cwd() / "config.json"), "Config Files (*.json)")
+        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Config File", str(Path.cwd() / "config.json"), "Config Files (*.json)")
         if not file_path:
             return
-        
+
         # Load the export options and global config
         try:
             config, global_config = self.export_options.get_export_config()
@@ -570,7 +556,7 @@ class UnbagApp(QtWidgets.QWidget):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Cannot get config: {e}")
             return
-        
+
         # Ensure the directory exists
         config_path = Path(file_path)
         if not config_path.parent.exists():
@@ -579,7 +565,7 @@ class UnbagApp(QtWidgets.QWidget):
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"Failed to create directory: {e}")
                 return
-        
+
         # Save the config to the specified file
         try:
             with open(file_path, "w") as f:

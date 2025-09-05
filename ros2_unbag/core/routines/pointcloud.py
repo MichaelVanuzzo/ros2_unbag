@@ -46,7 +46,7 @@ def export_pointcloud_pkl(msg, path: Path, fmt: str, metadata: ExportMetadata):
     Returns:
         None
     """
-    with open(path.with_suffix(".pkl"), 'wb') as f:
+    with open(path.with_suffix(".pkl"), "wb") as f:
         pickle.dump(msg, f)
 
 
@@ -109,7 +109,6 @@ def export_pointcloud_pcd(msg, path: Path, fmt: str, metadata: ExportMetadata):
 
     # Build point cloud
     pc = convert_pointcloud2_to_pypcd(msg)
-
 
     # Save the point cloud to a PCD file
     if fmt == "pointcloud/pcd":

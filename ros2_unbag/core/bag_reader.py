@@ -68,10 +68,10 @@ class BagReader:
             ValueError: If extension is unsupported.
         """
         ext = os.path.splitext(self.bag_path)[1].lower()
-        if ext == '.db3':
-            return 'sqlite3'
-        elif ext == '.mcap':
-            return 'mcap'
+        if ext == ".db3":
+            return "sqlite3"
+        elif ext == ".mcap":
+            return "mcap"
         else:
             raise ValueError(f"Unsupported bag extension: {ext}")
 
@@ -90,15 +90,10 @@ class BagReader:
         """
         try:
             storage_id = self._detect_storage_id()
-            storage_options = StorageOptions(uri=self.bag_path,
-                                             storage_id=storage_id)
-            converter_options = ConverterOptions(
-                input_serialization_format='cdr',
-                output_serialization_format='cdr')
+            storage_options = StorageOptions(uri=self.bag_path, storage_id=storage_id)
+            converter_options = ConverterOptions(input_serialization_format="cdr", output_serialization_format="cdr")
             self.reader.open(storage_options, converter_options)
-            self.topic_types = {
-                t.name: t.type for t in self.reader.get_all_topics_and_types()
-            }
+            self.topic_types = {t.name: t.type for t in self.reader.get_all_topics_and_types()}
             self.metadata = self.reader.get_metadata()
         except Exception as e:
             raise RuntimeError(f"Failed to open bag: {e}")
@@ -133,10 +128,7 @@ class BagReader:
         """
         if not self.metadata:
             raise RuntimeError("Bag metadata not available.")
-        return {
-            topic.topic_metadata.name: topic.message_count
-            for topic in self.metadata.topics_with_message_count
-        }
+        return {topic.topic_metadata.name: topic.message_count for topic in self.metadata.topics_with_message_count}
 
     def get_topics_with_frequency(self):
         """
@@ -154,11 +146,8 @@ class BagReader:
         try:
             reader = SequentialReader()
             storage_id = self._detect_storage_id()
-            storage_options = StorageOptions(uri=self.bag_path,
-                                             storage_id=storage_id)
-            converter_options = ConverterOptions(
-                input_serialization_format='cdr',
-                output_serialization_format='cdr')
+            storage_options = StorageOptions(uri=self.bag_path, storage_id=storage_id)
+            converter_options = ConverterOptions(input_serialization_format="cdr", output_serialization_format="cdr")
             reader.open(storage_options, converter_options)
 
             topic_timestamps = defaultdict(list)
@@ -169,14 +158,9 @@ class BagReader:
             result = []
             for topic, timestamps in topic_timestamps.items():
                 timestamps.sort()
-                duration = (timestamps[-1] -
-                            timestamps[0]) / 1e9 if len(timestamps) > 1 else 0.0
+                duration = (timestamps[-1] - timestamps[0]) / 1e9 if len(timestamps) > 1 else 0.0
                 frequency = len(timestamps) / duration if duration > 0 else 0.0
-                result.append({
-                    "name": topic,
-                    "type": self.topic_types.get(topic, "unknown"),
-                    "frequency": frequency
-                })
+                result.append({"name": topic, "type": self.topic_types.get(topic, "unknown"), "frequency": frequency})
 
             return result
         except Exception as e:
@@ -220,7 +204,7 @@ class BagReader:
                     msg = msg.transforms[0]
                 else:
                     return None
-                
+
             return topic, msg, t
         except Exception as e:
             raise RuntimeError(f"Failed to read message: {e}")

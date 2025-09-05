@@ -29,11 +29,13 @@ class ExportMode(Enum):
     SINGLE_FILE = auto()
     MULTI_FILE = auto()
 
+
 @dataclass(frozen=True)
 class ExportMetadata:
-    index: int                     # The index of the message in the topic
-    max_index: int                 # The maximum index of the message in the topic  
-    
+    index: int  # The index of the message in the topic
+    max_index: int  # The maximum index of the message in the topic
+
+
 class ExportRoutine:
     # Registry for export routines by message type and format
     registry = defaultdict(list)
@@ -51,8 +53,7 @@ class ExportRoutine:
         Returns:
             None
         """
-        self.msg_types = msg_types if isinstance(msg_types,
-                                                 list) else [msg_types]
+        self.msg_types = msg_types if isinstance(msg_types, list) else [msg_types]
         self.formats = formats
         self.mode = mode
         self.__class__.register(self)
@@ -76,7 +77,6 @@ class ExportRoutine:
         wrapper.persistent_storage = {}  # Initialize persistent storage
         self.func = wrapper
         return wrapper
-
 
     @classmethod
     def register(cls, routine):
@@ -127,7 +127,7 @@ class ExportRoutine:
         for r in cls.catch_all_registry.get(fmt, []):
             return r.func
         return None
-    
+
     @classmethod
     def get_mode(cls, msg_type, fmt):
         """
@@ -158,10 +158,12 @@ class ExportRoutine:
         Returns:
             function: Decorator function.
         """
+
         def decorator(func):
             routine = ExportRoutine(msg_types=[], formats=formats, mode=mode)
             wrapped_func = routine(func)
             for fmt in formats:
                 cls.catch_all_registry[fmt].append(routine)
             return wrapped_func
+
         return decorator

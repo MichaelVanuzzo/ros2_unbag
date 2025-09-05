@@ -33,7 +33,7 @@ from ros2_unbag.core.utils.file_utils import get_time_from_msg
 @ExportRoutine.set_catch_all(["text/json@multi_file", "text/yaml@multi_file", "table/csv@multi_file"], mode=ExportMode.MULTI_FILE)
 def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadata):
     """
-    Generic export handler supporting JSON, YAML, and CSV formats. 
+    Generic export handler supporting JSON, YAML, and CSV formats.
     Serialize the message, determine file extension, and save to the given path.
 
     Args:
@@ -169,7 +169,7 @@ def _write_line(file, line, filetype, is_first, is_last):
         if is_first:
             _add_csv_header(file, line[0])
         writer = csv.writer(file)
-        writer.writerow(line[1])   
+        writer.writerow(line[1])
 
     file.flush()
 
@@ -191,7 +191,7 @@ def _add_csv_header(file, header):
     writer.writerow(header)
 
 
-def _flatten(d, parent_key='', sep='.'):
+def _flatten(d, parent_key="", sep="."):
     """
     Flatten a nested dict into a single-level dict with compound keys separated by sep.
 

@@ -49,7 +49,7 @@ class Exporter:
             None
         """
         self.logger = logging.getLogger(__name__)
-        logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+        logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
         self.bag_reader = bag_reader
         self.config = export_config
@@ -63,10 +63,8 @@ class Exporter:
                 raise ValueError(f"Topic '{topic}' not found in bag. Available topics: {list(self.topic_types.keys())}")
 
         self.index_map = {t: 0 for t in self.config}
-        self.export_mode = {t: ExportRoutine.get_mode(self.topic_types[t], self.config[t]['format'])
-                            for t in self.config}
+        self.export_mode = {t: ExportRoutine.get_mode(self.topic_types[t], self.config[t]["format"]) for t in self.config}
         self.sequential_topics = [t for t, m in self.export_mode.items() if m == ExportMode.SINGLE_FILE]
-
 
         # one queue for parallel topics
         self.parallel_q = mp.Queue()
@@ -76,9 +74,11 @@ class Exporter:
         self.num_workers = max(1, int(mp.cpu_count() * self.global_config["cpu_percentage"] * 0.01))
         self.num_parallel_workers = max(1, self.num_workers - len(self.sequential_topics))
 
-        self.logger.info(f"Using {self.num_workers} workers for export, "
-              f"{self.num_parallel_workers} for parallel topics, "
-              f"{len(self.sequential_topics)} for sequential topics.")
+        self.logger.info(
+            f"Using {self.num_workers} workers for export, "
+            f"{self.num_parallel_workers} for parallel topics, "
+            f"{len(self.sequential_topics)} for sequential topics."
+        )
         self._enqueued_files = set()
 
         # Pre-fetch export handlers and processors
@@ -87,49 +87,42 @@ class Exporter:
 
         for topic, cfg in self.config.items():
 
-            fmt = cfg['format']
+            fmt = cfg["format"]
             topic_type = self.topic_types[topic]
 
             # Export handler
             self.topic_handlers[topic] = ExportRoutine.get_handler(topic_type, fmt)
-            
+
             if self.topic_handlers[topic] is None:
                 raise ValueError(f"No export handler found for topic '{topic}' with format '{fmt}'")
 
             # Optional processor
-            if 'processor' in cfg:
-                proc_name = cfg['processor']
-                proc_args = cfg.get('processor_args', {})
+            if "processor" in cfg:
+                proc_name = cfg["processor"]
+                proc_args = cfg.get("processor_args", {})
                 required_args = Processor.get_required_args(topic_type, proc_name)
                 missing_args = [arg for arg in required_args if arg not in proc_args]
                 if missing_args:
-                    raise ValueError(
-                        f"Missing required arguments for processor '{proc_name}': {', '.join(missing_args)}"
-                    )
+                    raise ValueError(f"Missing required arguments for processor '{proc_name}': {', '.join(missing_args)}")
                 proc_handler = Processor.get_handler(topic_type, proc_name)
                 self.topic_processors[topic] = (proc_handler, proc_args)
             else:
                 self.topic_processors[topic] = None
 
             # Prepare naming and path
-            name_tmpl = cfg['naming']
-            path_tmpl = cfg['path']
-            sub_tmpl  = cfg.get('subfolder', '').strip('/')
+            name_tmpl = cfg["naming"]
+            path_tmpl = cfg["path"]
+            sub_tmpl = cfg.get("subfolder", "").strip("/")
 
-            uses_index_or_ts = any(x in s for s in (name_tmpl, path_tmpl, sub_tmpl)
-                                for x in ("%index", "%timestamp"))
+            uses_index_or_ts = any(x in s for s in (name_tmpl, path_tmpl, sub_tmpl) for x in ("%index", "%timestamp"))
             has_strftime_name = is_strftime_in_template(name_tmpl)
-            has_strftime_path = (is_strftime_in_template(path_tmpl) or is_strftime_in_template(sub_tmpl))
+            has_strftime_path = is_strftime_in_template(path_tmpl) or is_strftime_in_template(sub_tmpl)
 
             # Check for conflicting templates
             if self.export_mode[topic] == ExportMode.SINGLE_FILE and (uses_index_or_ts or has_strftime_name or has_strftime_path):
-                raise ValueError(
-                    f"SINGLE_FILE mode for '{topic}' forbids %index/%timestamp and strftime in naming/path/subfolder."
-                )
+                raise ValueError(f"SINGLE_FILE mode for '{topic}' forbids %index/%timestamp and strftime in naming/path/subfolder.")
             if self.export_mode[topic] == ExportMode.MULTI_FILE and not uses_index_or_ts:
-                raise ValueError(
-                    f"MULTI_FILE mode for '{topic}' requires %index/%timestamp in naming/path/subfolder."
-                )
+                raise ValueError(f"MULTI_FILE mode for '{topic}' requires %index/%timestamp in naming/path/subfolder.")
 
             # Cache per-topic data
             if not hasattr(self, "_topic_cache"):
@@ -141,7 +134,7 @@ class Exporter:
                 "topic_base": topic.strip("/").replace("/", "_"),
                 "name_tmpl": name_tmpl,
                 "path_tmpl": path_tmpl,
-                "sub_tmpl":  sub_tmpl,
+                "sub_tmpl": sub_tmpl,
                 "has_strftime_name": has_strftime_name,
                 "has_strftime_path": has_strftime_path,
             }
@@ -163,8 +156,7 @@ class Exporter:
         """
         # Start export process using multiprocessing
         self.message_count = self.bag_reader.get_message_count()
-        self.max_progress_count = sum(
-            self.message_count.get(key, 0) for key in self.config)
+        self.max_progress_count = sum(self.message_count.get(key, 0) for key in self.config)
         self.bag_reader.set_filter(self.config.keys())
 
         # Max index for each topic
@@ -185,18 +177,17 @@ class Exporter:
         # Start workers for parallel topics
         for i in range(self.num_parallel_workers):
             process = mp.Process(target=self._worker, args=(self.parallel_q, progress_queue), name=f"Par-{i}", daemon=True)
-            process.start(); workers.append(process)
+            process.start()
+            workers.append(process)
 
         # Start one worker per sequential topic
         for topic, q in self.seq_queues.items():
             process = mp.Process(target=self._worker, args=(q, progress_queue, self.parallel_q), name=f"Seq-{topic}", daemon=True)
-            process.start(); workers.append(process)
+            process.start()
+            workers.append(process)
 
         # Start monitor thread to update progress
-        monitor = threading.Thread(target=self._monitor,
-                                   args=(progress_queue,),
-                                   name="Monitor",
-                                   daemon=True)
+        monitor = threading.Thread(target=self._monitor, args=(progress_queue,), name="Monitor", daemon=True)
         monitor.start()
 
         # Monitor the queues and handle exceptions
@@ -206,7 +197,7 @@ class Exporter:
                     # If an exception occurred, retrieve it and terminate all processes
                     exc_type, exc_msg = self.exception_queue.get()
 
-                    producer.terminate()                    
+                    producer.terminate()
                     for w in workers:
                         w.terminate()
 
@@ -232,7 +223,6 @@ class Exporter:
         progress_queue.put(None)
         monitor.join()
 
-
     def abort_export(self):
         """
         Abort export by throwing a user abort exception.
@@ -245,7 +235,6 @@ class Exporter:
         """
         error = RuntimeError(f"Export aborted by user")
         self.exception_queue.put((type(error).__name__, str(error)))
-
 
     def _producer(self):
         """
@@ -269,9 +258,9 @@ class Exporter:
                 return
 
             # Dispatch to the appropriate resampling strategy
-            if assoc_strategy == 'last':
+            if assoc_strategy == "last":
                 self._process_last_association(master_topic, discard_eps, dropped_frames)
-            elif assoc_strategy == 'nearest':
+            elif assoc_strategy == "nearest":
                 self._process_nearest_association(master_topic, discard_eps, dropped_frames)
 
             # Output summary and clean exit
@@ -281,7 +270,6 @@ class Exporter:
         except Exception as e:
             self.exception_queue.put((type(e).__name__, str(e)))
             self._signal_worker_termination()
-            
 
     def _get_resampling_config(self):
         """
@@ -309,7 +297,6 @@ class Exporter:
             return master, assoc, discard_eps
         return None, None, None
 
-
     def _export_all_messages(self):
         """
         Read and enqueue every message from configured topics without resampling, then signal workers to terminate.
@@ -329,9 +316,7 @@ class Exporter:
                 self._enqueue_export_task(topic, msg)
         self._signal_worker_termination()
 
-
-    def _process_last_association(self, master_topic, discard_eps,
-                                  dropped_frames):
+    def _process_last_association(self, master_topic, discard_eps, dropped_frames):
         """
         Resampling strategy: 'last'.
         Collect the latest message from each topic and align frames based on latest state when master message arrives.
@@ -390,14 +375,10 @@ class Exporter:
                 for t in self.config:
                     if t == master_topic:
                         continue
-                    if t not in latest_messages or (
-                        discard_eps_ns is not None and abs(master_ts - latest_messages[t][0]) > discard_eps_ns
-                    ):
+                    if t not in latest_messages or (discard_eps_ns is not None and abs(master_ts - latest_messages[t][0]) > discard_eps_ns):
                         dropped_frames[t] += 1
 
-
-    def _process_nearest_association(self, master_topic,
-                                     discard_eps, dropped_frames):
+    def _process_nearest_association(self, master_topic, discard_eps, dropped_frames):
         """
         Resampling strategy: 'nearest'.
         Buffer all messages and, when a master message arrives, find the closest message from each other topic.
@@ -425,7 +406,7 @@ class Exporter:
                 continue
 
             ts = get_time_from_msg(msg, return_datetime=False)
-            
+
             latest_ts_seen = max(latest_ts_seen, ts)
             buffers[topic].append((ts, msg))
 
@@ -446,16 +427,11 @@ class Exporter:
                 for t in self.config:
                     if t == master_topic:
                         continue
-                    candidates = [
-                        (ts_, msg_)
-                        for ts_, msg_ in buffers[t]
-                        if abs(ts_ - master_ts) <= discard_eps_ns
-                    ]
+                    candidates = [(ts_, msg_) for ts_, msg_ in buffers[t] if abs(ts_ - master_ts) <= discard_eps_ns]
                     if not candidates:
                         valid = False
                         break
-                    selected_ts, selected_msg = min(
-                        candidates, key=lambda x: abs(x[0] - master_ts))
+                    selected_ts, selected_msg = min(candidates, key=lambda x: abs(x[0] - master_ts))
                     frame[t] = selected_msg
 
                 if valid:
@@ -465,8 +441,7 @@ class Exporter:
                     for t in self.config:
                         if t == master_topic:
                             continue
-                        if not any(
-                            abs(ts_ - master_ts) <= discard_eps_ns for ts_, _ in buffers[t]):
+                        if not any(abs(ts_ - master_ts) <= discard_eps_ns for ts_, _ in buffers[t]):
                             dropped_frames[t] += 1
 
                 # Remove processed master message
@@ -496,7 +471,6 @@ class Exporter:
             self.parallel_q.put(None)
             self.seq_queues[topic].put(None)
 
-
     def _print_drop_summary(self, dropped_frames):
         """
         Print summary of how many frames were dropped per topic.
@@ -509,11 +483,11 @@ class Exporter:
         """
         if not dropped_frames:
             return
-        self.logger.info("The synchronization process dropped frames caused by the discard eps.\n"
-        "The following topics were not available at frame generation time:")
+        self.logger.info(
+            "The synchronization process dropped frames caused by the discard eps.\n" "The following topics were not available at frame generation time:"
+        )
         for topic, count in dropped_frames.items():
             self.logger.info(f"  {topic}: {count} times")
-
 
     def _enqueue_export_task(self, topic, msg):
         """
@@ -561,8 +535,9 @@ class Exporter:
 
         # Abort if the file name does not change in MULTI_FILE mode
         if cache["mode"] == ExportMode.MULTI_FILE and not is_first:
-            raise ValueError(f"Cannot use a non-changing file name for topic '{topic}' "
-                             f"and format '{cache['fmt']}'. This will overwrite the previous file: {full_path}")
+            raise ValueError(
+                f"Cannot use a non-changing file name for topic '{topic}' " f"and format '{cache['fmt']}'. This will overwrite the previous file: {full_path}"
+            )
 
         # Create the directory if it does not exist
         path.mkdir(parents=True, exist_ok=True)
@@ -578,7 +553,6 @@ class Exporter:
             self.seq_queues[topic].put(task)
         else:
             self.parallel_q.put(task)
-
 
     def _worker(self, task_queue, progress_queue, fallback_queue=None):
         """
@@ -621,7 +595,6 @@ class Exporter:
                 # Handle exceptions during export
                 self.exception_queue.put((type(e).__name__, str(e)))
                 break
-
 
     def _monitor(self, progress_queue):
         """

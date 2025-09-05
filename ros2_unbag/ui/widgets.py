@@ -78,7 +78,7 @@ class TopicSelector(QtWidgets.QWidget):
                 label = QtWidgets.QLabel(topic)
                 label.setCursor(QtCore.Qt.PointingHandCursor)
                 label.mousePressEvent = self._make_label_toggle_cb(checkbox)
-                count_label = QtWidgets.QLabel(str(self.message_counts.get(topic, 0))+ " Messages")
+                count_label = QtWidgets.QLabel(str(self.message_counts.get(topic, 0)) + " Messages")
                 count_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
                 h_layout.addWidget(checkbox)
@@ -125,10 +125,12 @@ class TopicSelector(QtWidgets.QWidget):
         Returns:
             function: Callback function for mousePressEvent.
         """
+
         def toggle(_):
             checkbox.toggle()
+
         return toggle
-    
+
     def get_selected_topics(self):
         """
         Return a list of topics whose checkboxes are currently checked.
@@ -139,9 +141,7 @@ class TopicSelector(QtWidgets.QWidget):
         Returns:
             list: List of selected topic names.
         """
-        return [
-            topic for topic, cb in self.checkboxes.items() if cb.isChecked()
-        ]
+        return [topic for topic, cb in self.checkboxes.items() if cb.isChecked()]
 
 
 class ExportOptions(QtWidgets.QWidget):
@@ -221,8 +221,7 @@ class ExportOptions(QtWidgets.QWidget):
 
         # ────────── Per-topic export options ──────────
         for idx, topic in enumerate(self.selected_topics):
-            topic_type = next(
-                (k for k, v in self.all_topics.items() if topic in v), None)
+            topic_type = next((k for k, v in self.all_topics.items() if topic in v), None)
 
             group_box = QtWidgets.QGroupBox(topic)
             form_layout = QtWidgets.QFormLayout()
@@ -236,11 +235,9 @@ class ExportOptions(QtWidgets.QWidget):
             abs_path_edit.setText(str(self.default_folder))
             browse_button = QtWidgets.QPushButton("Browse")
             if idx == 0:
-                browse_button.clicked.connect(lambda _, e=abs_path_edit: self.
-                                              select_directory_and_apply(e))
+                browse_button.clicked.connect(lambda _, e=abs_path_edit: self.select_directory_and_apply(e))
             else:
-                browse_button.clicked.connect(
-                    lambda _, e=abs_path_edit: self.select_directory(e))
+                browse_button.clicked.connect(lambda _, e=abs_path_edit: self.select_directory(e))
 
             path_layout = QtWidgets.QHBoxLayout()
             path_layout.addWidget(abs_path_edit)
@@ -250,7 +247,7 @@ class ExportOptions(QtWidgets.QWidget):
             # Subdirectory and naming scheme
             rel_path_edit = QtWidgets.QLineEdit("%name")
             name_scheme_edit = QtWidgets.QLineEdit()
-            
+
             # Dynamic update based on format selection
             def update_naming_and_checkbox(fmt, name_edit=name_scheme_edit, t_type=topic_type):
                 mode = ExportRoutine.get_mode(t_type, fmt)
@@ -264,20 +261,17 @@ class ExportOptions(QtWidgets.QWidget):
             update_naming_and_checkbox(fmt_combo.currentText())
 
             # Master checkbox (mutually exclusive)
-            is_master_check = QtWidgets.QCheckBox(
-                "Set as Master for Resampling")
+            is_master_check = QtWidgets.QCheckBox("Set as Master for Resampling")
             self.master_group.addButton(is_master_check)
             self.master_checkboxes[topic] = is_master_check
 
             # Processing selection
             if Processor.get_formats(topic_type):
                 proc_combo = QtWidgets.QComboBox()
-                proc_combo.addItems(
-                    ["No Processor", *Processor.get_formats(topic_type)])
+                proc_combo.addItems(["No Processor", *Processor.get_formats(topic_type)])
                 proc_combo.currentTextChanged.connect(
-                    lambda selected_processor, fl=form_layout, t=topic, tt
-                    =topic_type: self._processor_changed(
-                        selected_processor, t, tt, fl))
+                    lambda selected_processor, fl=form_layout, t=topic, tt=topic_type: self._processor_changed(selected_processor, t, tt, fl)
+                )
             else:
                 proc_combo = None
 
@@ -292,9 +286,7 @@ class ExportOptions(QtWidgets.QWidget):
             group_box.setLayout(form_layout)
             layout.addWidget(group_box)
 
-            self.config_widgets[topic] = (fmt_combo, abs_path_edit,
-                                          rel_path_edit, name_scheme_edit,
-                                          is_master_check, proc_combo)
+            self.config_widgets[topic] = (fmt_combo, abs_path_edit, rel_path_edit, name_scheme_edit, is_master_check, proc_combo)
 
         # ────────── Help ──────────
         note = QtWidgets.QLabel(
@@ -309,8 +301,7 @@ class ExportOptions(QtWidgets.QWidget):
         layout.addWidget(note)
 
         self.setLayout(layout)
-        self._sync_mode_changed(
-            self.assoc_combo.currentText())  # initialize state
+        self._sync_mode_changed(self.assoc_combo.currentText())  # initialize state
 
     def _sync_mode_changed(self, mode):
         """
@@ -337,8 +328,7 @@ class ExportOptions(QtWidgets.QWidget):
         if mode == "nearest" and not self.eps_edit.text().strip():
             self.eps_edit.setText("0.5")
 
-    def _processor_changed(self, selected_processor, topic, topic_type,
-                           form_layout):
+    def _processor_changed(self, selected_processor, topic, topic_type, form_layout):
         """
         Update the form layout when the processor selection changes: clear old argument fields and add QLineEdits for new processor args.
 
@@ -356,11 +346,9 @@ class ExportOptions(QtWidgets.QWidget):
             item = form_layout.itemAt(i, QtWidgets.QFormLayout.LabelRole)
             if item:
                 label = item.widget()
-                if label and hasattr(
-                        label, "is_argument_row") and label.is_argument_row:
+                if label and hasattr(label, "is_argument_row") and label.is_argument_row:
                     # Remove the associated field widget
-                    field_item = form_layout.itemAt(
-                        i, QtWidgets.QFormLayout.FieldRole)
+                    field_item = form_layout.itemAt(i, QtWidgets.QFormLayout.FieldRole)
                     if field_item:
                         field_widget = field_item.widget()
                         if field_widget:
@@ -427,8 +415,7 @@ class ExportOptions(QtWidgets.QWidget):
                 eps = None
 
             if assoc_mode == "nearest" and eps is None:
-                raise ValueError(
-                    "Discard Eps is required for 'nearest' association strategy.")
+                raise ValueError("Discard Eps is required for 'nearest' association strategy.")
 
             master_topic = None
             for topic, cb in self.master_checkboxes.items():
@@ -437,15 +424,9 @@ class ExportOptions(QtWidgets.QWidget):
                     break
 
             if not master_topic:
-                raise ValueError(
-                    "One topic must be marked as Master when synchronization is enabled."
-                )
-            
-            global_config["resample_config"] = {
-                "master_topic": master_topic,
-                "association": assoc_mode,
-                "discard_eps": eps
-            }
+                raise ValueError("One topic must be marked as Master when synchronization is enabled.")
+
+            global_config["resample_config"] = {"master_topic": master_topic, "association": assoc_mode, "discard_eps": eps}
 
         for topic, widgets in self.config_widgets.items():
             if assoc_mode == "no resampling":
@@ -456,12 +437,7 @@ class ExportOptions(QtWidgets.QWidget):
             base = abs_path.text().strip()
             sub = rel_path.text().strip().lstrip("/")
 
-            topic_cfg = {
-                "format": fmt.currentText(),
-                "path": base,
-                "subfolder": sub,
-                "naming": name.text().strip()
-            }
+            topic_cfg = {"format": fmt.currentText(), "path": base, "subfolder": sub, "naming": name.text().strip()}
 
             if processor and processor.currentText() != "No Processor":
                 proc_name = processor.currentText()
@@ -499,13 +475,9 @@ class ExportOptions(QtWidgets.QWidget):
                 continue
 
             # Check if the topic exists in the bag
-            all_topics_list = [
-                topic for topics in self.all_topics.values() for topic in topics
-            ]
+            all_topics_list = [topic for topics in self.all_topics.values() for topic in topics]
             if topic not in all_topics_list:
-                raise ValueError(
-                    f"Topic '{topic}' not found in the bag. Cannot set export config properly."
-                )
+                raise ValueError(f"Topic '{topic}' not found in the bag. Cannot set export config properly.")
 
             fmt_combo, abs_path_edit, rel_path_edit, name_scheme_edit, is_master_check, proc_combo = widgets
             # Set format
@@ -535,15 +507,12 @@ class ExportOptions(QtWidgets.QWidget):
 
                 # Restore processor arguments
                 processor_config = topic_cfg.get("processor_args", {})
-                topic_type = next(
-                    (k for k, v in self.all_topics.items() if topic in v), None)
+                topic_type = next((k for k, v in self.all_topics.items() if topic in v), None)
                 if processor_config and topic_type:
                     # Dynamically recreate argument fields
-                    self._processor_changed(proc_name, topic, topic_type,
-                                            proc_combo.parent().layout())
+                    self._processor_changed(proc_name, topic, topic_type, proc_combo.parent().layout())
                     for arg_name, arg_value in processor_config.items():
-                        arg_edit = self.processor_args[topic].get(
-                            arg_name, None)
+                        arg_edit = self.processor_args[topic].get(arg_name, None)
                         if arg_edit:
                             arg_edit.setText(str(arg_value))
 
@@ -569,8 +538,7 @@ class ExportOptions(QtWidgets.QWidget):
         Returns:
             None
         """
-        directory = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select Directory")
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
         if directory:
             for path_edit in self.all_path_edits:
                 path_edit.setText(directory)
@@ -585,7 +553,6 @@ class ExportOptions(QtWidgets.QWidget):
         Returns:
             None
         """
-        directory = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select Directory")
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory")
         if directory:
             edit.setText(directory)

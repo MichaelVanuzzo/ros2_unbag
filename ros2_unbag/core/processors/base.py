@@ -39,8 +39,7 @@ class Processor:
         Returns:
             None
         """
-        self.msg_types = msg_types if isinstance(msg_types,
-                                                 list) else [msg_types]
+        self.msg_types = msg_types if isinstance(msg_types, list) else [msg_types]
         self.formats = formats
         self.__class__.register(self)
 
@@ -123,11 +122,7 @@ class Processor:
         docstring = inspect.getdoc(handler)
         param_docs = cls._extract_param_docs(docstring)
 
-        return {
-            name: (param, param_docs.get(name, ""))
-            for name, param in signature.parameters.items()
-            if name != 'msg'
-        }
+        return {name: (param, param_docs.get(name, "")) for name, param in signature.parameters.items() if name != "msg"}
 
     @classmethod
     def get_required_args(cls, msg_type, fmt):
@@ -144,12 +139,9 @@ class Processor:
         # Get the required argument names for the processing function
         args = cls.get_args(msg_type, fmt)
         if args:
-            return [
-                name for name, (param, _) in args.items()
-                if isinstance(param, inspect.Parameter) and param.default == inspect.Parameter.empty
-            ]
+            return [name for name, (param, _) in args.items() if isinstance(param, inspect.Parameter) and param.default == inspect.Parameter.empty]
         return []
-    
+
     @staticmethod
     def _extract_param_docs(docstring):
         """

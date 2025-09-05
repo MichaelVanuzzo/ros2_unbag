@@ -80,7 +80,7 @@ def export_raw_image(msg, path: Path, fmt: str, metadata: ExportMetadata):
     raw = np.frombuffer(msg.data, dtype=np.uint8)
     img = convert_image(raw, msg.encoding, msg.width, msg.height)
 
-    ext = { "image/png": ".png", "image/jpeg": ".jpg" }.get(fmt)
+    ext = {"image/png": ".png", "image/jpeg": ".jpg"}.get(fmt)
     if not ext:
         raise ValueError(f"Unsupported export format: {fmt}")
 

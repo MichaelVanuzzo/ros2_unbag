@@ -4,6 +4,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
+
 def get_time_from_msg(msg, return_datetime=True):
     """
     Extract the timestamp from a ROS2 message and return it as a datetime object.
@@ -23,9 +24,7 @@ def get_time_from_msg(msg, return_datetime=True):
             sec = msg.stamp.sec
             nanosec = msg.stamp.nanosec
         except AttributeError:
-            logger.warning(
-                "Message has no valid timestamp; falling back to datetime.now() - This may lead to incorrect behavior."
-            )
+            logger.warning("Message has no valid timestamp; falling back to datetime.now() - This may lead to incorrect behavior.")
             now = datetime.now()
             if return_datetime:
                 return now
@@ -37,6 +36,8 @@ def get_time_from_msg(msg, return_datetime=True):
 
 
 _PLACEHOLDER_RE = re.compile(r"%(name|index|timestamp)")
+
+
 def substitute_placeholders(template_string: str, replacements: dict) -> str:
     """
     Replace %name, %index, %timestamp in a template string.
@@ -45,7 +46,7 @@ def substitute_placeholders(template_string: str, replacements: dict) -> str:
         template_string (str): The string containing placeholders.
         replacements (dict): A dictionary with keys 'name', 'index', and 'timestamp'
                              and their corresponding replacement values.
-    
+
     Returns:
         str: The string with placeholders replaced by their corresponding values.
     """
@@ -53,7 +54,10 @@ def substitute_placeholders(template_string: str, replacements: dict) -> str:
         return template_string
     return _PLACEHOLDER_RE.sub(lambda m: replacements[m.group(1)], template_string)
 
+
 _STRFTIME_RE = re.compile(r"%(?!name|index|timestamp)[A-Za-z]")
+
+
 def is_strftime_in_template(template_string: str) -> bool:
     """
     Check if the template string contains strftime format specifiers.

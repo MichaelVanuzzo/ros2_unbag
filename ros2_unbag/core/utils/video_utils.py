@@ -48,9 +48,7 @@ def _open_writer(path: Path, fmt: str, size_hw, fps: float):
     if fmt not in FOURCC_MAP:
         raise ValueError(f"Unsupported export format: {fmt}")
     h, w = size_hw
-    writer = cv2.VideoWriter(
-        str(path.with_suffix(EXT_MAP[fmt])), FOURCC_MAP[fmt], float(fps), (w, h)
-    )
+    writer = cv2.VideoWriter(str(path.with_suffix(EXT_MAP[fmt])), FOURCC_MAP[fmt], float(fps), (w, h))
     if not writer.isOpened():
         raise RuntimeError(
             f"Failed to open video writer for '{path.with_suffix(EXT_MAP[fmt])}'. "

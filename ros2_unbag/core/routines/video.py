@@ -29,6 +29,7 @@ from ros2_unbag.core.utils.image_utils import convert_image
 from ros2_unbag.core.utils.file_utils import get_time_from_msg
 from ros2_unbag.core.utils.video_utils import ensure_bgr, write_video_frame, finalize_video
 
+
 @ExportRoutine("sensor_msgs/msg/CompressedImage", ["video/mp4", "video/avi"], mode=ExportMode.SINGLE_FILE)
 def export_compressed_video(msg, path: Path, fmt: str, metadata: ExportMetadata):
     """
