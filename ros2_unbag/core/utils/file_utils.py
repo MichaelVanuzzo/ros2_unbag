@@ -24,11 +24,19 @@ def get_time_from_msg(msg, return_datetime=True):
             sec = msg.stamp.sec
             nanosec = msg.stamp.nanosec
         except AttributeError:
-            logger.warning("Message has no valid timestamp; falling back to datetime.now() - This may lead to incorrect behavior.")
-            now = datetime.now()
-            if return_datetime:
-                return now
-            return int(now.timestamp() * 1_000_000_000)
+            try:
+                # Handle MarkerArray messages - extract timestamp from first marker
+                if hasattr(msg, "markers") and len(msg.markers) > 0:
+                    sec = msg.markers[0].header.stamp.sec
+                    nanosec = msg.markers[0].header.stamp.nanosec
+                else:
+                    raise AttributeError("No timestamp found")
+            except (AttributeError, IndexError):
+                logger.warning("Message has no valid timestamp; falling back to datetime.now() - This may lead to incorrect behavior.")
+                now = datetime.now()
+                if return_datetime:
+                    return now
+                return int(now.timestamp() * 1_000_000_000)
 
     if not return_datetime:
         return int(sec) * 1_000_000_000 + int(nanosec)
