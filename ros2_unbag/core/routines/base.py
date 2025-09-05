@@ -70,9 +70,9 @@ class ExportRoutine:
         """
         storage = defaultdict(dict)  # Define a persistent storage for each topic
 
-        def wrapper(msg, path, fmt, metadata, topic=None):
+        def wrapper(msg, path, fmt, metadata, topic=None, bag_timestamp=None):
             wrapper.persistent_storage = storage[topic] if topic else {}
-            return func(msg, path, fmt, metadata)
+            return func(msg, path, fmt, metadata, bag_timestamp=bag_timestamp)
 
         wrapper.persistent_storage = {}  # Initialize persistent storage
         self.func = wrapper

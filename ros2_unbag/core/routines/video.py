@@ -31,7 +31,7 @@ from ros2_unbag.core.utils.video_utils import ensure_bgr, write_video_frame, fin
 
 
 @ExportRoutine("sensor_msgs/msg/CompressedImage", ["video/mp4", "video/avi"], mode=ExportMode.SINGLE_FILE)
-def export_compressed_video(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_compressed_video(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export a sequence of compressed image ROS messages to a video file using OpenCV.
 
@@ -40,6 +40,7 @@ def export_compressed_video(msg, path: Path, fmt: str, metadata: ExportMetadata)
         path: Output file path (without extension).
         fmt: Export format string ("video/mp4" or "video.avi").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -58,7 +59,7 @@ def export_compressed_video(msg, path: Path, fmt: str, metadata: ExportMetadata)
 
 
 @ExportRoutine("sensor_msgs/msg/Image", ["video/mp4", "video/avi"], mode=ExportMode.SINGLE_FILE)
-def export_video(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_video(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export a sequence of raw Image ROS messages to a video file using OpenCV.
 
@@ -67,6 +68,7 @@ def export_video(msg, path: Path, fmt: str, metadata: ExportMetadata):
         path: Output file path (without extension).
         fmt: Export format string ("video/mp4" or "video.avi").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None

@@ -311,9 +311,9 @@ class Exporter:
             res = self.bag_reader.read_next_message()
             if res is None:
                 break
-            topic, msg, _ = res
+            topic, msg, bag_timestamp = res
             if topic in self.config:
-                self._enqueue_export_task(topic, msg)
+                self._enqueue_export_task(topic, msg, bag_timestamp)
         self._signal_worker_termination()
 
     def _process_last_association(self, master_topic, discard_eps, dropped_frames):
@@ -338,7 +338,7 @@ class Exporter:
             if res is None:
                 break
 
-            topic, msg, _ = res
+            topic, msg, bag_timestamp = res
             cfg = self.config.get(topic)
             if not cfg:
                 continue
@@ -346,31 +346,34 @@ class Exporter:
             ts = get_time_from_msg(msg, return_datetime=False)
 
             latest_ts_seen = max(latest_ts_seen, ts)
-            latest_messages[topic] = (ts, msg)
+            latest_messages[topic] = (ts, msg, bag_timestamp)
 
             if topic != master_topic:
                 continue  # Wait for master message
 
             master_ts = ts
             frame = {}
+            frame_bag_timestamps = {}
 
             # Attempt to assemble a complete frame
             for t in self.config:
                 if t == master_topic:
                     frame[t] = msg
+                    frame_bag_timestamps[t] = bag_timestamp
                     continue
                 if t not in latest_messages:
                     frame = None
                     break
-                sel_ts, sel_msg = latest_messages[t]
+                sel_ts, sel_msg, sel_bag_timestamp = latest_messages[t]
                 if discard_eps_ns is not None and abs(master_ts - sel_ts) > discard_eps_ns:
                     frame = None
                     break
                 frame[t] = sel_msg
+                frame_bag_timestamps[t] = sel_bag_timestamp
 
             if frame:
                 for t, m in frame.items():
-                    self._enqueue_export_task(t, m)
+                    self._enqueue_export_task(t, m, frame_bag_timestamps[t])
             else:
                 for t in self.config:
                     if t == master_topic:
@@ -400,7 +403,7 @@ class Exporter:
             if res is None:
                 break
 
-            topic, msg, _ = res
+            topic, msg, bag_timestamp = res
             cfg = self.config.get(topic)
             if not cfg:
                 continue
@@ -408,40 +411,42 @@ class Exporter:
             ts = get_time_from_msg(msg, return_datetime=False)
 
             latest_ts_seen = max(latest_ts_seen, ts)
-            buffers[topic].append((ts, msg))
+            buffers[topic].append((ts, msg, bag_timestamp))
 
             if topic != master_topic:
                 continue
 
             # Attempt to process all buffered master messages up to current threshold
             while buffers[master_topic]:
-                candidate_ts, candidate_msg = buffers[master_topic][0]
+                candidate_ts, candidate_msg, candidate_bag_timestamp = buffers[master_topic][0]
                 if candidate_ts + discard_eps_ns > latest_ts_seen:
                     break  # Delay until more data arrives
 
                 master_ts = candidate_ts
                 frame = {master_topic: candidate_msg}
+                frame_bag_timestamps = {master_topic: candidate_bag_timestamp}
                 valid = True
 
                 # Find best match from each topic
                 for t in self.config:
                     if t == master_topic:
                         continue
-                    candidates = [(ts_, msg_) for ts_, msg_ in buffers[t] if abs(ts_ - master_ts) <= discard_eps_ns]
+                    candidates = [(ts_, msg_, bag_ts_) for ts_, msg_, bag_ts_ in buffers[t] if abs(ts_ - master_ts) <= discard_eps_ns]
                     if not candidates:
                         valid = False
                         break
-                    selected_ts, selected_msg = min(candidates, key=lambda x: abs(x[0] - master_ts))
+                    selected_ts, selected_msg, selected_bag_timestamp = min(candidates, key=lambda x: abs(x[0] - master_ts))
                     frame[t] = selected_msg
+                    frame_bag_timestamps[t] = selected_bag_timestamp
 
                 if valid:
                     for t, m in frame.items():
-                        self._enqueue_export_task(t, m)
+                        self._enqueue_export_task(t, m, frame_bag_timestamps[t])
                 else:
                     for t in self.config:
                         if t == master_topic:
                             continue
-                        if not any(abs(ts_ - master_ts) <= discard_eps_ns for ts_, _ in buffers[t]):
+                        if not any(abs(ts_ - master_ts) <= discard_eps_ns for ts_, _, _ in buffers[t]):
                             dropped_frames[t] += 1
 
                 # Remove processed master message
@@ -489,13 +494,14 @@ class Exporter:
         for topic, count in dropped_frames.items():
             self.logger.info(f"  {topic}: {count} times")
 
-    def _enqueue_export_task(self, topic, msg):
+    def _enqueue_export_task(self, topic, msg, bag_timestamp):
         """
         Build filename and directory for a topic message, create path, and enqueue the export task with format.
 
         Args:
             topic: Topic name (str).
             msg: ROS2 message instance.
+            bag_timestamp: Bag timestamp in nanoseconds.
 
         Returns:
             None
@@ -548,7 +554,7 @@ class Exporter:
         # Create metadata for the export
         metadata = ExportMetadata(index=index, max_index=self.max_index[topic])
 
-        task = (topic, msg, full_path, cache["fmt"], metadata)
+        task = (topic, msg, full_path, cache["fmt"], metadata, bag_timestamp)
         if cache["sequential"]:
             self.seq_queues[topic].put(task)
         else:
@@ -577,7 +583,7 @@ class Exporter:
                         task_queue, fallback_queue = fallback_queue, None
                         continue
                     break
-                topic, msg, full_path, fmt, metadata = task
+                topic, msg, full_path, fmt, metadata, bag_timestamp = task
 
                 # Use pre-fetched processor if available
                 processor = self.topic_processors.get(topic)
@@ -588,7 +594,7 @@ class Exporter:
                 # Use pre-fetched export handler
                 export_handler = self.topic_handlers[topic]
                 if export_handler:
-                    export_handler(msg, full_path, fmt, metadata, topic=topic)
+                    export_handler(msg, full_path, fmt, metadata, topic=topic, bag_timestamp=bag_timestamp)
                     progress_queue.put(1)
 
             except Exception as e:

@@ -33,7 +33,7 @@ from ros2_unbag.core.utils.pointcloud_utils import convert_pointcloud2_to_pypcd
 
 
 @ExportRoutine("sensor_msgs/msg/PointCloud2", ["pointcloud/pkl"], mode=ExportMode.MULTI_FILE)
-def export_pointcloud_pkl(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_pointcloud_pkl(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export PointCloud2 message as a raw pickle file by dumping the message object to a .pkl.
 
@@ -42,6 +42,7 @@ def export_pointcloud_pkl(msg, path: Path, fmt: str, metadata: ExportMetadata):
         path: Output file path (without extension).
         fmt: Export format string (default "pointcloud/pkl").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -51,7 +52,7 @@ def export_pointcloud_pkl(msg, path: Path, fmt: str, metadata: ExportMetadata):
 
 
 @ExportRoutine("sensor_msgs/msg/PointCloud2", ["pointcloud/xyz"], mode=ExportMode.MULTI_FILE)
-def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export PointCloud2 message as an XYZ text file by unpacking x, y, z floats from each point and writing lines.
 
@@ -60,6 +61,7 @@ def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata):
         path: Output file path (without extension).
         fmt: Export format string (default "pointcloud/xyz").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -92,7 +94,7 @@ def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata):
 
 
 @ExportRoutine("sensor_msgs/msg/PointCloud2", ["pointcloud/pcd", "pointcloud/pcd_compressed", "pointcloud/pcd_ascii"], mode=ExportMode.MULTI_FILE)
-def export_pointcloud_pcd(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_pointcloud_pcd(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export PointCloud2 message as a binary PCD v0.7 file.
     Construct and write PCD header from message fields and metadata, then pack and write each point’s data.
@@ -102,6 +104,7 @@ def export_pointcloud_pcd(msg, path: Path, fmt: str, metadata: ExportMetadata):
         path: Output file path (without extension).
         fmt: Export format string (default "pointcloud/xyz").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None

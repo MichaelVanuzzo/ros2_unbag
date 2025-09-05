@@ -29,7 +29,7 @@ from ros2_unbag.core.utils.image_utils import convert_image
 
 
 @ExportRoutine("sensor_msgs/msg/CompressedImage", ["image/png", "image/jpeg"], mode=ExportMode.MULTI_FILE)
-def export_compressed_image(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_compressed_image(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export a CompressedImage ROS message to PNG or JPEG.
     If the message is already in the desired format, write raw data; otherwise decode and re-encode with OpenCV.
@@ -39,6 +39,7 @@ def export_compressed_image(msg, path: Path, fmt: str, metadata: ExportMetadata)
         path: Output file path (without extension).
         fmt: Export format string ("image/png" or "image/jpeg").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -60,7 +61,7 @@ def export_compressed_image(msg, path: Path, fmt: str, metadata: ExportMetadata)
 
 
 @ExportRoutine("sensor_msgs/msg/Image", ["image/png", "image/jpeg"], mode=ExportMode.MULTI_FILE)
-def export_raw_image(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_raw_image(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Export a raw Image ROS message to PNG or JPEG using OpenCV.
 
@@ -69,6 +70,7 @@ def export_raw_image(msg, path: Path, fmt: str, metadata: ExportMetadata):
         path: Output file path (without extension).
         fmt: Export format string ("image/png" or "image/jpeg").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None

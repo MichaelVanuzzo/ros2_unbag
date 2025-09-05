@@ -23,6 +23,7 @@
 import csv
 import json
 from pathlib import Path
+from datetime import datetime
 
 from rosidl_runtime_py import message_to_ordereddict, message_to_yaml
 
@@ -31,7 +32,7 @@ from ros2_unbag.core.utils.file_utils import get_time_from_msg
 
 
 @ExportRoutine.set_catch_all(["text/json@multi_file", "text/yaml@multi_file", "table/csv@multi_file"], mode=ExportMode.MULTI_FILE)
-def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Generic export handler supporting JSON, YAML, and CSV formats.
     Serialize the message, determine file extension, and save to the given path.
@@ -41,6 +42,7 @@ def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadat
         path: Output file path (without extension).
         fmt: Export format string ("text/yaml@multi_file", "text/json@multi_file", "table/csv@multi_file").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -48,13 +50,13 @@ def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadat
     timestamp = get_time_from_msg(msg, return_datetime=True)
 
     if fmt == "text/json@multi_file":
-        serialized_line = _serialize_message_with_timestamp(msg, "json", timestamp)
+        serialized_line = _serialize_message_with_timestamp(msg, "json", timestamp, bag_timestamp)
         file_ending = ".json"
     elif fmt == "text/yaml@multi_file":
-        serialized_line = _serialize_message_with_timestamp(msg, "yaml", timestamp)
+        serialized_line = _serialize_message_with_timestamp(msg, "yaml", timestamp, bag_timestamp)
         file_ending = ".yaml"
     elif fmt == "table/csv@multi_file":
-        header, values = _serialize_message_with_timestamp(msg, "csv", timestamp)
+        header, values = _serialize_message_with_timestamp(msg, "csv", timestamp, bag_timestamp)
         file_ending = ".csv"
 
     # Save the serialized message to a file
@@ -64,7 +66,7 @@ def export_generic_multi_file(msg, path: Path, fmt: str, metadata: ExportMetadat
 
 
 @ExportRoutine.set_catch_all(["text/json@single_file", "text/yaml@single_file", "table/csv@single_file"], mode=ExportMode.SINGLE_FILE)
-def export_generic_single_file(msg, path: Path, fmt: str, metadata: ExportMetadata):
+def export_generic_single_file(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):
     """
     Generic export handler supporting JSON, YAML, and CSV formats.
     Serialize the message, determine file extension, and append to the given path with file locking (precaution).
@@ -74,6 +76,7 @@ def export_generic_single_file(msg, path: Path, fmt: str, metadata: ExportMetada
         path: Output file path (without extension).
         fmt: Export format string ("text/yaml@single_file", "text/json@single_file", "table/csv@single_file").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         None
@@ -81,13 +84,13 @@ def export_generic_single_file(msg, path: Path, fmt: str, metadata: ExportMetada
     timestamp = get_time_from_msg(msg, return_datetime=True)
 
     if fmt == "text/json@single_file":
-        serialized_line = _serialize_message_with_timestamp(msg, "json", timestamp)
+        serialized_line = _serialize_message_with_timestamp(msg, "json", timestamp, bag_timestamp)
         file_ending = ".json"
     elif fmt == "text/yaml@single_file":
-        serialized_line = _serialize_message_with_timestamp(msg, "yaml", timestamp)
+        serialized_line = _serialize_message_with_timestamp(msg, "yaml", timestamp, bag_timestamp)
         file_ending = ".yaml"
     elif fmt == "table/csv@single_file":
-        header, values = _serialize_message_with_timestamp(msg, "csv", timestamp)
+        header, values = _serialize_message_with_timestamp(msg, "csv", timestamp, bag_timestamp)
         file_ending = ".csv"
 
     # Determine if this is the first or last message for the file
@@ -104,7 +107,7 @@ def export_generic_single_file(msg, path: Path, fmt: str, metadata: ExportMetada
         _write_line(f, serialized_line if fmt != "table/csv@single_file" else [header, values], fmt, is_first, is_last)
 
 
-def _serialize_message_with_timestamp(msg, fmt, timestamp):
+def _serialize_message_with_timestamp(msg, fmt, timestamp, bag_timestamp=None):
     """
     Serialize a ROS message to the specified format.
 
@@ -112,24 +115,49 @@ def _serialize_message_with_timestamp(msg, fmt, timestamp):
         msg: ROS message instance to serialize.
         fmt: Export format string ("yaml", "json", "csv").
         timestamp: Timestamp to include in the serialized output.
+        bag_timestamp: Bag timestamp in nanoseconds.
 
     Returns:
         str: Serialized message as a string.
     """
     if fmt == "json":
         message_dict = message_to_ordereddict(msg)
-        serialized_line = json.dumps(message_dict, default=str)
-        serialized_line_with_timestamp = f'"{timestamp.isoformat()}": {serialized_line}'
+        serialized_message = json.dumps(message_dict, default=str)
+
+        if bag_timestamp is not None:
+            bag_dt = datetime.fromtimestamp(bag_timestamp / 1e9)
+            serialized_line_with_timestamp = f'"{timestamp.isoformat()}": {{"bag_timestamp": "{bag_dt.isoformat()}", "message": {serialized_message}}}'
+        else:
+            serialized_line_with_timestamp = f'"{timestamp.isoformat()}": {{"message": {serialized_message}}}'
+
         return serialized_line_with_timestamp
+
     elif fmt == "yaml":
+        serialized_line_with_timestamp = f"{timestamp}:\n"
+
+        if bag_timestamp is not None:
+            bag_dt = datetime.fromtimestamp(bag_timestamp / 1e9)
+            serialized_line_with_timestamp += f"  bag_timestamp: {bag_dt.isoformat()}\n"
+
         yaml_content = message_to_yaml(msg)
-        indented_yaml_content = "\n".join(f"  {line}" for line in yaml_content.splitlines())
-        serialized_line_with_timestamp = f"{timestamp}:\n{indented_yaml_content}"
+        indented_yaml_content = "\n".join(f"    {line}" for line in yaml_content.splitlines())
+        serialized_line_with_timestamp += f"  message:\n{indented_yaml_content}"
+
         return serialized_line_with_timestamp
+
     elif fmt == "csv":
+        header = ["timestamp"]
+        values = [str(timestamp)]
+
+        if bag_timestamp is not None:
+            bag_dt = datetime.fromtimestamp(bag_timestamp / 1e9)
+            header.append("bag_timestamp")
+            values.append(str(bag_dt))
+
         flat_data = _flatten(message_to_ordereddict(msg))
-        header = ["timestamp", *flat_data.keys()]
-        values = [str(timestamp), *flat_data.values()]
+        header.extend(flat_data.keys())
+        values.extend(flat_data.values())
+
         return [header, values]
 
 
