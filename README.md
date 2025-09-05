@@ -243,7 +243,7 @@ from ros2_unbag.core.routines.base import ExportRoutine                         
 # you can also import other packages here - e.g., numpy, cv2, etc.
 
 @ExportRoutine("sensor_msgs/msg/PointCloud2", ["pointcloud/xyz"], mode=ExportMode.MULTI_FILE)
-def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata):   # define the export routine function, the name of the function does not matter
+def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata, bag_timestamp=None):   # define the export routine function, the name of the function does not matter
     """
     Export PointCloud2 message as an XYZ text file by unpacking x, y, z floats from each point and writing lines.
 
@@ -252,6 +252,7 @@ def export_pointcloud_xyz(msg, path: Path, fmt: str, metadata: ExportMetadata): 
         path: Output file path (without extension).
         fmt: Export format string (default "pointcloud/xyz").
         metadata: Export metadata including message index and max index.
+        bag_timestamp: Bag timestamp in nanoseconds (optional).
 
     Returns:
         None
